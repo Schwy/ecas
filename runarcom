@@ -1,0 +1,24 @@
+#!/bin/bash
+chmod 777 *
+cat <<-EOF
+
+Vous pouvez lancer tout module dont vous avez precise le nom
+Tapez <return> pour installer les modules, puis encore <return> pour les arreter
+EOF
+
+read junk
+sudo insmod /usr/realtime/modules/rtai_hal.ko
+sudo insmod /usr/realtime/modules/rtai_sched.ko
+sudo insmod 3712.ko
+sudo insmod squelette_rtai_nico_singletask.ko
+#sudo insmod $1.ko
+
+lsmod
+echo "Tapez <return> pour arreter le programme."
+read junk
+
+sudo rmmod $1
+sudo rmmod squelette_rtai_nico_singletask
+sudo rmmod rtai_sched
+sudo rmmod rtai_hal
+sudo rmmod 3712
