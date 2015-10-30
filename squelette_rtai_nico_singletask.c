@@ -23,7 +23,7 @@ MODULE_LICENSE("GPL");
 /* define pour tache periodique */
 #define STACK_SIZE      2000
 #define TICK_PERIOD     1000000    //1 ms
-#define PERIODE_CONTROL 10000000	 //20ms
+#define PERIODE_CONTROL 10000000	 //10ms
 #define N_BOUCLE         10000000
 #define NUMERO             1
 #define PRIORITE        1
@@ -49,8 +49,6 @@ MODULE_LICENSE("GPL");
 #define MAX_POS            	0.6
 #define CHANNEL_ANGL        0
 #define CHANNEL_POS       	1
-
-#define COEFF_ANGL		0.000361803
 
 // EXTREMES ARCOM
 //Banc 2 à revérifier
@@ -165,32 +163,31 @@ void calc_matrix()
 {
 	//data.x=data.Adc*data.x+data.Bdc*data.y;
 	//data.u=-data.Cdc*data.x;
-	/*vit_ang = (y[0] - ang_save)/PERIODE_CONTROL;
+	vit_ang = ((y[0] - ang_save)/PERIODE_CONTROL)*0.0000000001;
 	ang_save = y[0];
-	vit_pos = (y[1] - pos_save)/PERIODE_CONTROL;
+	vit_pos = ((y[1] - pos_save)/PERIODE_CONTROL)*0.0000000001;
 	pos_save = y[1];
-	*/
 	/*
 	x[0]=y[0];
 	x[1]=y[1];
-	x[2]=vit_ang;
-	x[3]=vit_pos;
+	x[2]=vit_pos;
+	x[3]=vit_ang;
 	*/
-	x[0]=(x_new[0]);
-	x[1]=(x_new[1]);
-	x[2]=(x_new[2]);
-	x[3]=(x_new[3]);
-
 	x_new[0]= Adc[0][0]*x[0] + Adc[0][1]*x[1] + Adc[0][2]*x[2] + Adc[0][3]*x[3] + Bdc[0][0]*y[0] + Bdc[0][1]*y[1];
 	x_new[1]= Adc[1][0]*x[0] + Adc[1][1]*x[1] + Adc[1][2]*x[2] + Adc[1][3]*x[3] + Bdc[1][0]*y[0] + Bdc[1][1]*y[1];
 	x_new[2]= Adc[2][0]*x[0] + Adc[2][1]*x[1] + Adc[2][2]*x[2] + Adc[2][3]*x[3] + Bdc[2][0]*y[0] + Bdc[2][1]*y[1];
 	x_new[3]= Adc[3][0]*x[0] + Adc[3][1]*x[1] + Adc[3][2]*x[2] + Adc[3][3]*x[3] + Bdc[3][0]*y[0] + Bdc[3][1]*y[1];
 
 	commande =  - Cdc[0]*(x_new[0])
-	- Cdc[1]*(x_new[1])
-	- Cdc[2]*(x_new[2])
-	- Cdc[3]*(x_new[3]);
+				- Cdc[1]*(x_new[1])
+				- Cdc[2]*(x_new[2])
+				- Cdc[3]*(x_new[3]);
 
+	x[0]=(x_new[0]);
+	x[1]=(x_new[1]);
+	x[2]=(x_new[2]);
+	x[3]=(x_new[3]);
+	commande = commande * 4;
 	if((int)(commande*1000) > 10000)//Commande >10.00
 	{
 		commande = 10.0;		//dans l'ecriture de la commande le float peut prendre jusqu'a 10 pour ecrire 0 !
@@ -207,7 +204,7 @@ void calc_matrix()
 void write_DAC()
 {
 	set_DA(0, commande);                // on ecrit dans le canal 0, la "commande"
-	printk("%d\ta:%d\t\t",(int)(commande*1000),(int)(y[0]*10000));
+	//printk("%d\ta:%d\t\t",(int)(commande*1000),(int)(y[0]*10000));
 }
 
 /*
@@ -269,7 +266,6 @@ static void tpcan_exit(void)
     rt_task_delete(&tache_main);
     //printk("EXIT\n");
 }
-
 module_init(tpcan_init);
 module_exit(tpcan_exit);
 
