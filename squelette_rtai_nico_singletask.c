@@ -23,7 +23,7 @@ MODULE_LICENSE("GPL");
 /* define pour tache periodique */
 #define STACK_SIZE      2000
 #define TICK_PERIOD     1000000    //1 ms
-#define PERIODE_CONTROL 20000000	 //25ms
+#define PERIODE_CONTROL 10000000	 //20ms
 #define N_BOUCLE         10000000
 #define NUMERO             1
 #define PRIORITE        1
@@ -59,36 +59,42 @@ MODULE_LICENSE("GPL");
 
 #if (BANC == 2)
 	#define MIDDLE		2007
+	#define COEFF_ANGL		0.000376543
     #define BC_PMn		367
     #define BC_PMx		3839
     #define BC_AMn		1195
     #define BC_AMx		2823
 #elif (BANC == 3)
 	#define MIDDLE		2059 //56mV
+	#define COEFF_ANGL	0.000361803
     #define BC_PMn		400
     #define BC_PMx		3890
     #define BC_AMn		1200
     #define BC_AMx		2825//2910
 #elif (BANC == 4)
 	#define MIDDLE		2007
+	#define COEFF_ANGL	0.000361803
     #define BC_PMn		5
     #define BC_PMx		4095
     #define BC_AMn		1291
     #define BC_AMx		2760
 #elif (BANC == 5)
 	#define MIDDLE		2007
+	#define COEFF_ANGL	0.000361803
     #define BC_PMn		0
     #define BC_PMx		4095
     #define BC_AMn		1235
     #define BC_AMx		2800
 #elif (BANC == 0)		//VALEURS 0-4095
 	#define MIDDLE		2047
+	#define COEFF_ANGL	0.000361803
     #define BC_PMn		0
     #define BC_PMx		4095
     #define BC_AMn		0
     #define BC_AMx		4095
 #else
 	#define MIDDLE		2007
+	#define COEFF_ANGL	0.000361803
     #define BC_PMn		380
     #define BC_PMx		3820
     #define BC_AMn		1200
@@ -141,76 +147,58 @@ void	read_ADC			(void);
 void	write_DAC			(void);
 void	calc_matrix			(void);
 
-
-// probleme au niveau des données de lecture (sans mouvement du pendule varie jusqu'a 200 (int lue)
-// ceci est apparue suite a la modification des fonction de conversion (ancienne version toujours commantee)
-// changement des erreurs a la con, des define et de l'initialisation des matrices
-// ATTENTION, affichage float fait des erreurs sur : 0.0011 au lieu de 0.011
-
 void main_task(long arg)
 {
 	while(1)
 	{
 		read_ADC();
 		read_ADC();
-		//printk("pos= ");affichage_float(y[1][0]);printk(" | angl= ");affichage_float(y[0][0]);
 		//printk("pos*1000= %d", (int)(y[1][0]*1000));
 		//printk(" | angl*1000= %d\t", (int)(y[0][0]*1000));
 		calc_matrix();
 		write_DAC();
-		//printk("\n");
 		rt_task_wait_period();
 	}
 }
 
 void calc_matrix()
 {
-        //printk("test matrix : get in\n");
-       	//y[0][0] = 0.01;	//Angle
-		//y[1][0] = 0.0;	//Position
+	//data.x=data.Adc*data.x+data.Bdc*data.y;
+	//data.u=-data.Cdc*data.x;
+	/*vit_ang = (y[0] - ang_save)/PERIODE_CONTROL;
+	ang_save = y[0];
+	vit_pos = (y[1] - pos_save)/PERIODE_CONTROL;
+	pos_save = y[1];
+	*/
+	/*
+	x[0]=y[0];
+	x[1]=y[1];
+	x[2]=vit_ang;
+	x[3]=vit_pos;
+	*/
+	x[0]=(x_new[0]);
+	x[1]=(x_new[1]);
+	x[2]=(x_new[2]);
+	x[3]=(x_new[3]);
 
-  		//data.x=data.Adc*data.x+data.Bdc*data.y;
-  		//data.u=-data.Cdc*data.x;
-		/*vit_ang = (y[0] - ang_save)/PERIODE_CONTROL;
-		ang_save = y[0];
-		vit_pos = (y[1] - pos_save)/PERIODE_CONTROL;
-		pos_save = y[1];
-		*/
-		/*
-		x[0]=y[0];
-	 	x[1]=y[1];
-	 	x[2]=vit_ang;
-	 	x[3]=vit_pos;
-		*/
-		x_new[0]= Adc[0][0]*x[0] + Adc[0][1]*x[1] + Adc[0][2]*x[2] + Adc[0][3]*x[3] + Bdc[0][0]*y[0] + Bdc[0][1]*y[1];
-		x_new[1]= Adc[1][0]*x[0] + Adc[1][1]*x[1] + Adc[1][2]*x[2] + Adc[1][3]*x[3] + Bdc[1][0]*y[0] + Bdc[1][1]*y[1];
-		x_new[2]= Adc[2][0]*x[0] + Adc[2][1]*x[1] + Adc[2][2]*x[2] + Adc[2][3]*x[3] + Bdc[2][0]*y[0] + Bdc[2][1]*y[1];
-		x_new[3]= Adc[3][0]*x[0] + Adc[3][1]*x[1] + Adc[3][2]*x[2] + Adc[3][3]*x[3] + Bdc[3][0]*y[0] + Bdc[3][1]*y[1];
+	x_new[0]= Adc[0][0]*x[0] + Adc[0][1]*x[1] + Adc[0][2]*x[2] + Adc[0][3]*x[3] + Bdc[0][0]*y[0] + Bdc[0][1]*y[1];
+	x_new[1]= Adc[1][0]*x[0] + Adc[1][1]*x[1] + Adc[1][2]*x[2] + Adc[1][3]*x[3] + Bdc[1][0]*y[0] + Bdc[1][1]*y[1];
+	x_new[2]= Adc[2][0]*x[0] + Adc[2][1]*x[1] + Adc[2][2]*x[2] + Adc[2][3]*x[3] + Bdc[2][0]*y[0] + Bdc[2][1]*y[1];
+	x_new[3]= Adc[3][0]*x[0] + Adc[3][1]*x[1] + Adc[3][2]*x[2] + Adc[3][3]*x[3] + Bdc[3][0]*y[0] + Bdc[3][1]*y[1];
 
-		commande =  - Cdc[0]*(x_new[0])
-				 	- Cdc[1]*(x_new[1])
-				 	- Cdc[2]*(x_new[2])
-				 	- Cdc[3]*(x_new[3]);
-		
-		x[0]=(x_new[0]);
-	 	x[1]=(x_new[1]);
-	 	x[2]=(x_new[2]);
-	 	x[3]=(x_new[3]);
-		
-		////printk("Com*100: %d | ", (int)(commande*100));affichage_float(commande);//printk("\n");
-            if((int)(commande*1000) > 10000)//Commande >10.00
-            {
-                commande = 10.0;		//dans l'ecriture de la commande le float peut prendre jusqu'a 10 pour ecrire 0 !
-                //printk("(c>10)");
-            }
-            else if((int)(commande*1000) < -10000)//Commande <-10.00
-            {
-                commande = -10.0;
-                // printk("(c<-10)");
-            }
-        //else printk("(-10<c<10)\n");
+	commande =  - Cdc[0]*(x_new[0])
+	- Cdc[1]*(x_new[1])
+	- Cdc[2]*(x_new[2])
+	- Cdc[3]*(x_new[3]);
 
-        //printk("test matrix : get out\n\n");
+	if((int)(commande*1000) > 10000)//Commande >10.00
+	{
+		commande = 10.0;		//dans l'ecriture de la commande le float peut prendre jusqu'a 10 pour ecrire 0 !
+	}
+	else if((int)(commande*1000) < -10000)//Commande <-10.00
+	{
+		commande = -10.0;
+	}
 }
 
 /* write_DAC
@@ -218,16 +206,8 @@ void calc_matrix()
  */
 void write_DAC()
 {
-    //printk("write_DAC : START\n");
-  
-        //printk("write_DAC : get in\n");
-        //printk("\nwrite_DAC : Ecriture de commande * 1000 =  %d \n", (int)(commande*1000));
-        set_DA(0, commande);                // on ecrit dans le canal 0, la "commande"
-        //printk("\nwrite_DAC : u*100 = %d\n",(int)(commande*100));
-        //rt_task_wait_period();
-        //printk("write_DAC : get out\n\n");
-    
-    //printk("write_DAC : END\n");
+	set_DA(0, commande);                // on ecrit dans le canal 0, la "commande"
+	printk("%d\ta:%d\t\t",(int)(commande*1000),(int)(y[0]*10000));
 }
 
 /*
@@ -238,39 +218,21 @@ void write_DAC()
 void read_ADC()
 {
     int     value, chan;
-    //printk("read_ADC : START\n");
-    //init_3718();
-      
-        //printk("read_ADC : get in\n");
-        trigger();
-        while(adc_read_eoc() != 1);                            // Attente de fin d'acquisition
-        value         = adc_read_value();                        //recuperation du (canal + valeur) concaténés
-        chan         = value & 0x0F;                            //recuperation du canal
-        value         = value >> 4 ;                            //recuperation de la valeur lue (0-4095)
-
-        //printk("Cnl %d (0/4095): %d",chan,value);
-
-    
-        if(chan == 1 )            // on se trouve dans le canal de lecture de la position (canal 1)
-        {
-            //pos = adc_convert_pos(value);
-            //verif_position(value);
-            y[1] = adc_convert_pos(value);
-            //printk("Position*100 (-60/60) = %d (value = %d)\n",(int)(pos*100),(int)pos);
-        }
-        else if(chan == 0 )        // on se trouve dans le canal de lecture de l angle (canal 0)
-        {
-            //angl = adc_convert_angle(value);
-            //verif_angle(value);
-            //y[0][0] = (-1)* adc_convert_angle(value);
-			y[0] = -adc_convert_angle(value);
-            //printk("Angle*100 (-61/61)= %d (value = %d)\n",(int)(angl*100),(int)angl);
-        }
-
-        //printk("Position*100= %d, Angle*100(rad)= %d\n\n",(int)(pos*100),(int)(angl*100));
-       
-        //printk("read_ADC : get out\n\n");
- 
+	trigger();
+	while(adc_read_eoc() != 1);                            // Attente de fin d'acquisition
+	value         = adc_read_value();                        //recuperation du (canal + valeur) concaténés
+	chan         = value & 0x0F;                            //recuperation du canal
+	value         = value >> 4 ;                            //recuperation de la valeur lue (0-4095)
+	//printk("Cnl %d (0/4095): %d",chan,value);
+	if(chan == 1 )            // on se trouve dans le canal de lecture de la position (canal 1)
+	{
+		y[1] = adc_convert_pos(value);
+	}
+	else if(chan == 0 )        // on se trouve dans le canal de lecture de l angle (canal 0)
+	{
+		y[0] = -adc_convert_angle(value);
+	}
+	//printk("Position*100= %d, Angle*100(rad)= %d\n\n",(int)(pos*100),(int)(angl*100));
 }
 
 /**************************************************************************\
@@ -384,18 +346,13 @@ int adc_read_value(void)
 // suppression de la substitution de valeur quand depassement de la valeur max ou min
 float adc_convert_pos(int value)
 {    
-    //float check;
-    //int min=BC_PMn;
-    //int max=BC_PMx;
-    //check = ((((value-(BC_PMn))*1.2)/((BC_PMx)-(BC_PMn)))- 0.6);
-	//verif_position(value);
     return ( ( ( (value-(BC_PMn)) * 1.2) / ( (BC_PMx)-(BC_PMn) ) )- 0.6); // verif OK (by nico)
 }
 
 //La valeur de l'angle n'est plus calculée à partir des valeurs extrêmes, mais du milieu (Antoine, 28/10) 
 float adc_convert_angle(int value)
 {    
-   	return (value-MIDDLE)*COEFF_ANGL; 
+   	return (value-MIDDLE)*COEFF_ANGL;
 	//return ( ( ((value -(BC_AMn)) *MAX_ANGL*2.0) / (BC_AMx-(BC_AMn)) )- (MAX_ANGL)); // verif OK (by nico)
 }
 
@@ -423,10 +380,6 @@ void set_DA(int canal, float value)
     value_n = (int)((value +10.0) * 4095.0 / 20.0);             // CONVERION IN NUMERIC
     lsb = value_n & 0x00FF;                            //Recuperation du LSB
     msb = value_n >> 8;                            //Recuperation du MSB
-    //printk("Valeur en bits : %d\n",value);
-    //printk("Valeur MSB : %d\n",msb);
-    //printk("Valeur LSB : %d\n",lsb);
-    /* WRITE OUTPUT */
     outb(lsb,BASE_DAC_0+2*canal);
     outb(msb,BASE_DAC_1+2*canal);
 }
@@ -438,8 +391,7 @@ void init_matrix(void)
 {
     printk("init_matrix : begin initialization\n");
     
-    //Matrice un seul pendule
-    
+    //Matrice un seul pendule    
     Adc[0][0]= 0.6196;    Adc[0][1]= 0.0968;    Adc[0][2]=-0.0008;    Adc[0][3]= 0.0086;
     Adc[1][0]= 0.0971;    Adc[1][1]= 0.7038;    Adc[1][2]= 0.0107;    Adc[1][3]= 0.0012;
     Adc[2][0]= 1.8124;    Adc[2][1]=-1.7997;    Adc[2][2]= 1.1306;    Adc[2][3]= 0.2351;
@@ -509,7 +461,6 @@ void affichage_float(float val)
 
 void verif_angle(int value)
 {
-    //printk("verif angle : get in\n");
     float check=0.0;
     int min=BC_AMn;
     int max=BC_AMx;
@@ -539,8 +490,4 @@ void verif_position(int value)
     {
         printk("convertion position : valeur trop basse ! Vérifier valeurs extremes du banc.\n");
     }
-
 }
-
-
-
