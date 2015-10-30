@@ -23,7 +23,7 @@ MODULE_LICENSE("GPL");
 /* define pour tache periodique */
 #define STACK_SIZE      2000
 #define TICK_PERIOD     1000000    //1 ms
-#define PERIODE_CONTROL 25000000	 //25ms
+#define PERIODE_CONTROL 20000000	 //25ms
 #define N_BOUCLE         10000000
 #define NUMERO             1
 #define PRIORITE        1
@@ -50,55 +50,63 @@ MODULE_LICENSE("GPL");
 #define CHANNEL_ANGL        0
 #define CHANNEL_POS       	1
 
+#define COEFF_ANGL		0.000361803
+
 // EXTREMES ARCOM
 //Banc 2 à revérifier
 #define BANC        3        //CHOISIR ENTRE 2,3,4,5 ou autre(défaut) *************************
 
 
 #if (BANC == 2)
-    #define BC_PMn        367
-    #define BC_PMx        3839
-    #define BC_AMn        1195
-    #define BC_AMx        2823
+	#define MIDDLE		2007
+    #define BC_PMn		367
+    #define BC_PMx		3839
+    #define BC_AMn		1195
+    #define BC_AMx		2823
 #elif (BANC == 3)
-    #define BC_PMn        400
-    #define BC_PMx        3890
-    #define BC_AMn        1200
-    #define BC_AMx        2825//2910
+	#define MIDDLE		2059 //56mV
+    #define BC_PMn		400
+    #define BC_PMx		3890
+    #define BC_AMn		1200
+    #define BC_AMx		2825//2910
 #elif (BANC == 4)
-    #define BC_PMn        5
-    #define BC_PMx        4095
-    #define BC_AMn        1291
-    #define BC_AMx        2760
+	#define MIDDLE		2007
+    #define BC_PMn		5
+    #define BC_PMx		4095
+    #define BC_AMn		1291
+    #define BC_AMx		2760
 #elif (BANC == 5)
-    #define BC_PMn        0
-    #define BC_PMx        4095
-    #define BC_AMn        1235
-    #define BC_AMx        2800
-#elif (BANC == 0)
-    #define BC_PMn        0
-    #define BC_PMx        4095
-    #define BC_AMn        0
-    #define BC_AMx        4095
+	#define MIDDLE		2007
+    #define BC_PMn		0
+    #define BC_PMx		4095
+    #define BC_AMn		1235
+    #define BC_AMx		2800
+#elif (BANC == 0)		//VALEURS 0-4095
+	#define MIDDLE		2047
+    #define BC_PMn		0
+    #define BC_PMx		4095
+    #define BC_AMn		0
+    #define BC_AMx		4095
 #else
-    #define BC_PMn        380
-    #define BC_PMx        3820
-    #define BC_AMn        1200
-    #define BC_AMx        2820
+	#define MIDDLE		2007
+    #define BC_PMn		380
+    #define BC_PMx		3820
+    #define BC_AMn		1200
+    #define BC_AMx		2820
 #endif
 
 /* RT_TASK */
 static RT_TASK tache_main;
-static int temps=0;
+//static int temps=0;
 
 /*** DEFINE GLOBAL VAR ***/
 float commande;
 float Adc[4][4];
 float Bdc[4][2];
-float Cdc[1][4];
-float x[4][1];
-float x_save[4][1];
-float y[2][1];
+float Cdc[4];
+float x[4];
+float x_new[4];
+float y[2];
 int line;
 int h;
 
@@ -163,42 +171,33 @@ void calc_matrix()
 
   		//data.x=data.Adc*data.x+data.Bdc*data.y;
   		//data.u=-data.Cdc*data.x;
-		vit_ang = (y[0][0] - ang_save)/PERIODE_CONTROL;
-		ang_save = y[0][0];
-		vit_pos = (y[1][0] - pos_save)/PERIODE_CONTROL;
-		pos_save = y[1][0];
-
-
-
-		/*
-		x[0][0]=y[0][0];
-	 	x[0][1]=y[1][0];
-	 	x[0][2]=vit_ang;
-	 	x[0][3]=vit_pos;
-		*/
-		x_save[0][0]= Adc[0][0]*x[0][0] + Adc[0][1]*x[1][0] + Adc[0][2]*x[2][0] + Adc[0][3]*x[3][0] + Bdc[0][0]*y[0][0] + Bdc[0][1]*y[1][0];
-		x_save[1][0]= Adc[1][0]*x[0][0] + Adc[1][1]*x[1][0] + Adc[1][2]*x[2][0] + Adc[1][3]*x[3][0] + Bdc[1][0]*y[0][0] + Bdc[1][1]*y[1][0];
-		x_save[2][0]= Adc[2][0]*x[0][0] + Adc[2][1]*x[1][0] + Adc[2][2]*x[2][0] + Adc[2][3]*x[3][0] + Bdc[2][0]*y[0][0] + Bdc[2][1]*y[1][0];
-		x_save[3][0]= Adc[3][0]*x[0][0] + Adc[3][1]*x[1][0] + Adc[3][2]*x[2][0] + Adc[3][3]*x[3][0] + Bdc[3][0]*y[0][0] + Bdc[3][1]*y[1][0];
-
-		commande =  - Cdc[0][0]*(x_save[0][0])
-				 	- Cdc[0][1]*(x_save[1][0])
-				 	- Cdc[0][2]*(x_save[2][0])
-				 	- Cdc[0][3]*(x_save[3][0]);
-
-		/*
-		x[0][0]=(x_save[0][0]);
-	 	x[0][1]=(x_save[1][0]);
-	 	x[0][2]=(x_save[2][0]);
-	 	x[0][3]=(x_save[3][0]);
+		/*vit_ang = (y[0] - ang_save)/PERIODE_CONTROL;
+		ang_save = y[0];
+		vit_pos = (y[1] - pos_save)/PERIODE_CONTROL;
+		pos_save = y[1];
 		*/
 		/*
-		commande =  - Cdc[0][0]*(Adc[0][0]*x[0][0] + Adc[0][1]*x[1][0] + Adc[0][2]*x[2][0] + Adc[0][3]*x[3][0] +Bdc[0][0]*y[0][0] +Bdc[0][1]*y[1][0])
-				 	- Cdc[0][1]*(Adc[1][0]*x[0][0] + Adc[1][1]*x[1][0] + Adc[1][2]*x[2][0] + Adc[1][3]*x[3][0] +Bdc[1][0]*y[0][0] +Bdc[1][1]*y[1][0])
-				 	- Cdc[0][2]*(Adc[2][0]*x[0][0] + Adc[2][1]*x[1][0] + Adc[2][2]*x[2][0] + Adc[2][3]*x[3][0] +Bdc[2][0]*y[0][0] +Bdc[2][1]*y[1][0])
-				 	- Cdc[0][3]*(Adc[3][0]*x[0][0] + Adc[3][1]*x[1][0] + Adc[3][2]*x[2][0] + Adc[3][3]*x[3][0] +Bdc[3][0]*y[0][0] +Bdc[3][1]*y[1][0]);
+		x[0]=y[0];
+	 	x[1]=y[1];
+	 	x[2]=vit_ang;
+	 	x[3]=vit_pos;
 		*/
-		 ////printk("Com*100: %d | ", (int)(commande*100));affichage_float(commande);//printk("\n");
+		x_new[0]= Adc[0][0]*x[0] + Adc[0][1]*x[1] + Adc[0][2]*x[2] + Adc[0][3]*x[3] + Bdc[0][0]*y[0] + Bdc[0][1]*y[1];
+		x_new[1]= Adc[1][0]*x[0] + Adc[1][1]*x[1] + Adc[1][2]*x[2] + Adc[1][3]*x[3] + Bdc[1][0]*y[0] + Bdc[1][1]*y[1];
+		x_new[2]= Adc[2][0]*x[0] + Adc[2][1]*x[1] + Adc[2][2]*x[2] + Adc[2][3]*x[3] + Bdc[2][0]*y[0] + Bdc[2][1]*y[1];
+		x_new[3]= Adc[3][0]*x[0] + Adc[3][1]*x[1] + Adc[3][2]*x[2] + Adc[3][3]*x[3] + Bdc[3][0]*y[0] + Bdc[3][1]*y[1];
+
+		commande =  - Cdc[0]*(x_new[0])
+				 	- Cdc[1]*(x_new[1])
+				 	- Cdc[2]*(x_new[2])
+				 	- Cdc[3]*(x_new[3]);
+		
+		x[0]=(x_new[0]);
+	 	x[1]=(x_new[1]);
+	 	x[2]=(x_new[2]);
+	 	x[3]=(x_new[3]);
+		
+		////printk("Com*100: %d | ", (int)(commande*100));affichage_float(commande);//printk("\n");
             if((int)(commande*1000) > 10000)//Commande >10.00
             {
                 commande = 10.0;		//dans l'ecriture de la commande le float peut prendre jusqu'a 10 pour ecrire 0 !
@@ -216,10 +215,6 @@ void calc_matrix()
 
 /* write_DAC
  * Routine de l'actionneur:
- * a terme: renvoi la valeur calculée par le processeur déporter.
- * Test a effectué: envoyé une commande proportionnel a l'angle du pendule
- * (permet de commander le moteur en direct)
- * !! ATTENTION ajouter un limite sur les bornes. (ex si val> born -> STOP)
  */
 void write_DAC()
 {
@@ -260,7 +255,7 @@ void read_ADC()
         {
             //pos = adc_convert_pos(value);
             //verif_position(value);
-            y[1][0] = adc_convert_pos(value);
+            y[1] = adc_convert_pos(value);
             //printk("Position*100 (-60/60) = %d (value = %d)\n",(int)(pos*100),(int)pos);
         }
         else if(chan == 0 )        // on se trouve dans le canal de lecture de l angle (canal 0)
@@ -268,7 +263,7 @@ void read_ADC()
             //angl = adc_convert_angle(value);
             //verif_angle(value);
             //y[0][0] = (-1)* adc_convert_angle(value);
-			y[0][0] = -adc_convert_angle(value);		// plus logique sans moins d'apres la valeur retournee de l'angle qui sera deja negative si c'est la valeur la plus petite
+			y[0] = -adc_convert_angle(value);
             //printk("Angle*100 (-61/61)= %d (value = %d)\n",(int)(angl*100),(int)angl);
         }
 
@@ -309,9 +304,7 @@ static void tpcan_exit(void)
 {
     //printk("inside tpcan_exit\n");
     stop_rt_timer();
-
     rt_task_delete(&tache_main);
-
     //printk("EXIT\n");
 }
 
@@ -356,12 +349,17 @@ void ad_range_select(int canal, int range)
 // ajout de cette fonction pour permettre une interruption quand fin de de conversion
 int adc_read_eoc(void)
 {    
+	if((inb(BASE_ADC_8) & 0x80) == 0x80)
+	{return 1;}
+	else{return 0;}
+	/*
     int eoc = 0;
     int temp = 0;
     eoc = inb(BASE_ADC_8);                            // EOC: end of convertion p41/37
     if((eoc & 0x80) == 0x80){temp = 1;}                // verif fin conversion
     else{ temp = 0;}
     return temp;
+	*/
 }
 
 // lecture de la valeur une fois que la conversion est finie
@@ -394,14 +392,11 @@ float adc_convert_pos(int value)
     return ( ( ( (value-(BC_PMn)) * 1.2) / ( (BC_PMx)-(BC_PMn) ) )- 0.6); // verif OK (by nico)
 }
 
-// suppression de la substitution de valeur quand depassement de la valeur max ou min
+//La valeur de l'angle n'est plus calculée à partir des valeurs extrêmes, mais du milieu (Antoine, 28/10) 
 float adc_convert_angle(int value)
 {    
-    //printk("convert angle : get in\n");
-    //printk("convert angle : get out\n");
-	//verif_angle(value);
-   
-	return ( ( ((value -(BC_AMn)) *MAX_ANGL*2.0) / (BC_AMx-(BC_AMn)) )- (MAX_ANGL)); // verif OK (by nico)
+   	return (value-MIDDLE)*COEFF_ANGL; 
+	//return ( ( ((value -(BC_AMn)) *MAX_ANGL*2.0) / (BC_AMx-(BC_AMn)) )- (MAX_ANGL)); // verif OK (by nico)
 }
 
 
@@ -455,11 +450,12 @@ void init_matrix(void)
     Bdc[2][0]=-1.0133;    Bdc[2][1]= 1.8954;
     Bdc[3][0]= 3.0534;    Bdc[3][1]=-0.9858;
 
-    Cdc[0][0]=-80.3092;    Cdc[0][1]=-9.6237;    Cdc[0][2]=-14.1215;    Cdc[0][3]=-23.6260;
-       
- 	/*
-    //Matrice deux pendules (Allah vérifier)
-    Adc[0][0]= 0.6300;    Adc[0][1]=-0.1206;    Adc[0][2]=-0.0008;    Adc[0][3]= 0.0086;
+    Cdc[0]=-80.3092;    Cdc[1]=-9.6237;    Cdc[2]=-14.1215;    Cdc[3]=-23.6260;
+      
+ 	
+    //Matrice deux pendules
+/*    
+	Adc[0][0]= 0.6300;    Adc[0][1]=-0.1206;    Adc[0][2]=-0.0008;    Adc[0][3]= 0.0086;
     Adc[1][0]=-0.0953;    Adc[1][1]= 0.6935;    Adc[1][2]= 0.0107;    Adc[1][3]= 0.0012;
     Adc[2][0]=-0.2896;    Adc[2][1]=-1.9184;    Adc[2][2]= 1.1306;    Adc[2][3]= 0.2351;
     Adc[3][0]=-3.9680;    Adc[3][1]=-1.7733;    Adc[3][2]=-0.1546;    Adc[3][3]= 0.7222;
@@ -469,16 +465,16 @@ void init_matrix(void)
     Bdc[2][0]=1.0887;    Bdc[2][1]=2.0141;
     Bdc[3][0]=3.1377;    Bdc[3][1]=1.6599;
 
-    Cdc[0][0]=-80.3092;    Cdc[0][1]=-9.6237;    Cdc[0][2]=-14.1215;    Cdc[0][3]=-23.6260;
+    Cdc[0]=-80.3092;    Cdc[1]=-9.6237;    Cdc[2]=-14.1215;    Cdc[3]=-23.6260;
 	*/ 
 
-    y[0][0]=0;
-    y[1][0]=0;
+    y[0]=0;
+    y[1]=0;
 
-    x[0][0]=0;
-    x[1][0]=0;
-    x[2][0]=0;
-    x[3][0]=0;
+    x[0]=0;
+    x[1]=0;
+    x[2]=0;
+    x[3]=0;
 
     printk("init_matrix : end initialization\n");
 }
